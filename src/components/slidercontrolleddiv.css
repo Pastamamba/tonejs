@@ -1,0 +1,46 @@
+.oscillator-type-button {
+    padding: 1em;
+}
+
+.oscillator-type-button.active {
+    background: cadetblue;
+}
+
+.oscillator-type-button:hover {
+    cursor: pointer;
+}
+
+
+.slider-controlled-div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 97vh;
+}
+
+.flashing-div {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: -1;
+}
+
+.controls {
+    position: relative;
+    background-color: grey;
+    border-radius: 0.2em;
+    padding: 1em;
+    z-index: 10;
+}
+
+.button, .slider {
+    margin: 0 10px;
+}
+
