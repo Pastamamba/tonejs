@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import * as Tone from 'tone';
 import "./slidercontrolleddiv.css";
 
+// Component for oscillator type selection button
 const OscillatorTypeButton = ({ active, type, setOscillatorType }) => {
+    // Class name changes based on whether the button is active
     const buttonClass = `oscillator-type-button ${active ? "active" : ""}`;
     return React.createElement("button", {
         className: buttonClass,
@@ -10,25 +12,30 @@ const OscillatorTypeButton = ({ active, type, setOscillatorType }) => {
     }, type);
 };
 
-const SliderControlledDiv = () => {
+// Main component controlling oscillator and flashing div
+const PetenSliderControlledDiv = () => {
+    // State for flashing effect, speed, frequency, oscillator type, and the oscillator object
     const [isFlashing, setIsFlashing] = useState(false);
     const [speed, setSpeed] = useState(1);
     const [frequency, setFrequency] = useState(40);
     const [oscillatorType, setOscillatorType] = useState('sine');
     const [oscillator, setOscillator] = useState(null);
 
+    // Effect for initializing and cleaning up the oscillator
     useEffect(() => {
         const osc = new Tone.Oscillator(frequency, oscillatorType).toDestination();
         setOscillator(osc);
         return () => osc.dispose();
     }, [frequency, oscillatorType]);
 
+    // Effect for updating oscillator type
     useEffect(() => {
         if (oscillator) {
             oscillator.type = oscillatorType;
         }
     }, [oscillatorType, oscillator]);
 
+    // Effect for toggling flashing state at a speed determined by `speed`
     useEffect(() => {
         const flashInterval = setInterval(() => {
             setIsFlashing(f => !f);
@@ -36,6 +43,7 @@ const SliderControlledDiv = () => {
         return () => clearInterval(flashInterval);
     }, [speed]);
 
+    // Effect for starting or stopping the oscillator based on flashing state
     useEffect(() => {
         if (isFlashing) {
             oscillator?.start();
@@ -44,12 +52,14 @@ const SliderControlledDiv = () => {
         }
     }, [isFlashing, oscillator]);
 
+    // Effect for setting oscillator frequency
     useEffect(() => {
         if (oscillator) {
             oscillator.frequency.setValueAtTime(frequency, Tone.now());
         }
     }, [frequency, oscillator]);
 
+    // Handlers for changing speed and frequency
     const handleSpeedChange = (e) => {
         setSpeed(Number(e.target.value));
     };
@@ -58,6 +68,7 @@ const SliderControlledDiv = () => {
         setFrequency(Number(e.target.value));
     };
 
+    // Functions to increment/decrement speed and frequency
     const adjustSpeed = (delta) => {
         setSpeed(prevSpeed => Math.max(0.1, Math.min(5, prevSpeed + delta)));
     };
@@ -66,6 +77,7 @@ const SliderControlledDiv = () => {
         setFrequency(prevFrequency => Math.max(0, Math.min(120, prevFrequency + delta)));
     };
 
+    // Rendering the main component
     return React.createElement("div", { className: "slider-controlled-div" },
         React.createElement("div", {
             className: "flashing-div",
@@ -96,6 +108,7 @@ const SliderControlledDiv = () => {
             }),
             React.createElement("button", { className: "button", onClick: () => adjustFrequency(1) }, "+"),
             React.createElement("label", null, `Frequency (Hz): ${frequency}`),
+            // Rendering OscillatorTypeButtons for each type
             React.createElement("div", {
                     style: { display: 'flex', justifyContent: 'center', margin: '20px 0' }
                 },
@@ -108,4 +121,4 @@ const SliderControlledDiv = () => {
     );
 };
 
-export default SliderControlledDiv;
+export default PetenSliderControlledDiv;

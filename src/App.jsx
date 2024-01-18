@@ -1,11 +1,11 @@
-import SliderControlledDiv from "./components/SliderControlledDiv.jsx";
+import {SliderControlledDiv} from "./components/SlidedrControlledDiv.jsx";
 
 
 export const App = () => {
-  return (
-    <>
-      <SliderControlledDiv />
-    </>
-  )
+    return (
+        <>
+            <SliderControlledDiv/>
+        </>
+    )
 }
 
