@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import './slidercontrolleddiv.css';
 
@@ -38,9 +38,8 @@ export const SliderControlledDiv = () => {
     }, [leftFrequency, leftOscillatorType, rightFrequency, rightOscillatorType]);
 
     const playOscillator = (oscillator, dutyCycle, side) => {
-        if (oscillatorsRef.current[side] || oscillator.state === 'started') {
-            return;
-        }
+        if (oscillatorsRef.current[side]) return;
+
         oscillatorsRef.current[side] = true;
         oscillator.start();
         setTimeout(() => {
@@ -51,20 +50,17 @@ export const SliderControlledDiv = () => {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setVisualActive(prev => {
-                if (prev) {
-                    playOscillator(leftOscillator, leftDutyCycle, 'left');
-                } else {
-                    playOscillator(rightOscillator, rightDutyCycle, 'right');
-                }
-                return !prev;
-            });
+            setVisualActive(prev => !prev);
+            if (visualActive) {
+                playOscillator(leftOscillator, leftDutyCycle, 'left');
+                playOscillator(rightOscillator, rightDutyCycle, 'right');
+            }
         }, 1000 / speed);
 
         return () => {
             clearInterval(interval);
         };
-    }, [speed, leftDutyCycle, rightDutyCycle, leftOscillator, rightOscillator]);
+    }, [speed, leftDutyCycle, rightDutyCycle, leftOscillator, rightOscillator, visualActive]);
 
     const handleSpeedChange = (e) => setSpeed(Number(e.target.value));
     const handleLeftDutyCycleChange = (e) => setLeftDutyCycle(Number(e.target.value));
@@ -93,8 +89,8 @@ export const SliderControlledDiv = () => {
                                               setOscillatorType={setLeftOscillatorType}/>
                         <OscillatorTypeButton active={leftOscillatorType === 'sawtooth'} type='sawtooth'
                                               setOscillatorType={setLeftOscillatorType}/>
-                        <OscillatorTypeButton active={leftOscillatorType === 'triangle'} type='triangle'
-                                              setOscillatorType={setLeftOscillatorType}/>
+                        <OscillatorTypeButton active={leftOscillatorType === 'sine2'} type='sine2'
+                                              setOscillatorType={setRightOscillatorType}/>
                     </div>
                 </div>
                 {/* Visual Control */}
@@ -119,7 +115,7 @@ export const SliderControlledDiv = () => {
                                               setOscillatorType={setRightOscillatorType}/>
                         <OscillatorTypeButton active={rightOscillatorType === 'sawtooth'} type='sawtooth'
                                               setOscillatorType={setRightOscillatorType}/>
-                        <OscillatorTypeButton active={rightOscillatorType === 'triangle'} type='triangle'
+                        <OscillatorTypeButton active={rightOscillatorType === 'sine2'} type='sine2'
                                               setOscillatorType={setRightOscillatorType}/>
                     </div>
                 </div>
