@@ -1,4 +1,4 @@
-import {SliderControlledDiv} from "./components/SlidedrControlledDiv.jsx";
+import {SliderControlledDiv} from "./components/SliderControlledDiv.jsx";
 
 
 export const App = () => {
