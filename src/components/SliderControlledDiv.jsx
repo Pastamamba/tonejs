@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import './slidercontrolleddiv.css';
+import {Panner} from "tone";
 
 const OscillatorTypeButton = ({ active, type, setOscillatorType }) => {
     const buttonClass = `oscillator-type-button ${active ? 'active' : ''}`;
@@ -26,9 +27,12 @@ export const SliderControlledDiv = () => {
     // Refs for tracking oscillator states
     const oscillatorsRef = useRef({ left: false, right: false });
 
+    const leftPanner = new Panner(-1).toDestination();
+    const rightPanner = new Panner(1).toDestination();
+
     useEffect(() => {
-        const leftOsc = new Tone.Oscillator(leftFrequency, leftOscillatorType).toDestination();
-        const rightOsc = new Tone.Oscillator(rightFrequency, rightOscillatorType).toDestination();
+        const leftOsc = new Tone.Oscillator(leftFrequency, leftOscillatorType).connect(leftPanner);
+        const rightOsc = new Tone.Oscillator(rightFrequency, rightOscillatorType).connect(rightPanner);
         setLeftOscillator(leftOsc);
         setRightOscillator(rightOsc);
         return () => {
