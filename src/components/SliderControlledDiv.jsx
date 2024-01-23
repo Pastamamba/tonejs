@@ -1,18 +1,30 @@
-import { useState, useEffect, useRef } from 'react';
+// Import necessary hooks and libraries
+import {useState, useEffect, useRef} from 'react';
 import * as Tone from 'tone';
 import './slidercontrolleddiv.css';
 import {Panner} from "tone";
 
-const OscillatorTypeButton = ({ active, type, setOscillatorType }) => {
+// OscillatorTypeButton Component
+// Renders a button for selecting oscillator type.
+// Props:
+// - active: Boolean indicating if this oscillator type is active.
+// - type: String representing the oscillator type.
+// - setOscillatorType: Function to set the oscillator type.
+const OscillatorTypeButton = ({active, type, setOscillatorType}) => {
+    // Determine CSS class based on whether the button is active
     const buttonClass = `oscillator-type-button ${active ? 'active' : ''}`;
     return (
+        // Render the button with an onClick handler to set the oscillator type
         <button className={buttonClass} onClick={() => setOscillatorType(type)}>
             {type}
         </button>
     );
 };
 
+// SliderControlledDiv Component
+// This component renders a user interface for controlling oscillators and a visual element.
 export const SliderControlledDiv = () => {
+    // State hooks for various control parameters
     const [speed, setSpeed] = useState(1);
     const [leftDutyCycle, setLeftDutyCycle] = useState(25);
     const [rightDutyCycle, setRightDutyCycle] = useState(25);
@@ -24,26 +36,34 @@ export const SliderControlledDiv = () => {
     const [rightOscillator, setRightOscillator] = useState(null);
     const [visualActive, setVisualActive] = useState(false);
 
-    // Refs for tracking oscillator states
-    const oscillatorsRef = useRef({ left: false, right: false });
+    // Ref for tracking the state of each oscillator
+    const oscillatorsRef = useRef({left: false, right: false});
 
+    // Panner instances for left and right audio channels
     const leftPanner = new Panner(-1).toDestination();
     const rightPanner = new Panner(1).toDestination();
 
+    // Effect hook for initializing and disposing of Tone.js oscillators
     useEffect(() => {
+        // Create new oscillators connected to the respective panner
         const leftOsc = new Tone.Oscillator(leftFrequency, leftOscillatorType).connect(leftPanner);
         const rightOsc = new Tone.Oscillator(rightFrequency, rightOscillatorType).connect(rightPanner);
         setLeftOscillator(leftOsc);
         setRightOscillator(rightOsc);
+
+        // Cleanup function to dispose of oscillators when component unmounts
         return () => {
             leftOsc.dispose();
             rightOsc.dispose();
         };
     }, [leftFrequency, leftOscillatorType, rightFrequency, rightOscillatorType]);
 
+    // Function to play an oscillator for a specified duty cycle
     const playOscillator = (oscillator, dutyCycle, side) => {
+        // Prevent multiple simultaneous plays for the same oscillator
         if (oscillatorsRef.current[side]) return;
 
+        // Start the oscillator and set a timeout to stop it based on duty cycle
         oscillatorsRef.current[side] = true;
         oscillator.start();
         setTimeout(() => {
@@ -52,31 +72,38 @@ export const SliderControlledDiv = () => {
         }, (1000 / speed) * (dutyCycle / 100));
     };
 
+    // Effect hook to handle the timing of visual and auditory changes
     useEffect(() => {
         const interval = setInterval(() => {
-            setVisualActive(prev => !prev);
-            if (visualActive) {
-                playOscillator(leftOscillator, leftDutyCycle, 'left');
-                playOscillator(rightOscillator, rightDutyCycle, 'right');
-            }
+            setTimeout(() => {
+                setVisualActive(prev => {
+                    if (!prev) {
+                        playOscillator(leftOscillator, leftDutyCycle, 'left');
+                        playOscillator(rightOscillator, rightDutyCycle, 'right');
+                    }
+                    return !prev;
+                });
+            }, 100);
+
         }, 1000 / speed);
 
         return () => {
             clearInterval(interval);
         };
-    }, [speed, leftDutyCycle, rightDutyCycle, leftOscillator, rightOscillator, visualActive]);
+    }, [speed, leftDutyCycle, rightDutyCycle, leftOscillator, rightOscillator]);
 
+    // Event handlers for various control inputs
     const handleSpeedChange = (e) => setSpeed(Number(e.target.value));
     const handleLeftDutyCycleChange = (e) => setLeftDutyCycle(Number(e.target.value));
     const handleRightDutyCycleChange = (e) => setRightDutyCycle(Number(e.target.value));
     const handleLeftFrequencyChange = (e) => setLeftFrequency(Number(e.target.value));
     const handleRightFrequencyChange = (e) => setRightFrequency(Number(e.target.value));
 
-    // Render the component
+    // Render the main component
     return (
         <div className='slider-controlled-div'>
             <button onClick={() => Tone.start()}>Start Audio</button>
-            <div className='flashing-div' style={{backgroundColor: visualActive ? 'black' : 'white'}}></div>
+            <div className='flashing-div' style={{backgroundColor: !visualActive ? 'black' : 'white'}}></div>
             <div className='controls' style={{display: 'flex', justifyContent: 'space-between'}}>
                 {/* Left Auditory Controls */}
                 <div>
