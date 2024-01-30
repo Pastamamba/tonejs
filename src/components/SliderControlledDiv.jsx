@@ -69,16 +69,25 @@ export const SliderControlledDiv = () => {
         if (oscillatorsRef.current[side]) return;
 
         let speedMultiplier = calculateSpeedMultiplier(visualDutyCycle);
+        console.log(visualDutyCycle)
         if(visualDutyCycle > 50) {
-            speedMultiplier = speedMultiplier - 1;
-        } else if (visualDutyCycle < 50 && visualDutyCycle >= 21) {
-            speedMultiplier = speedMultiplier + 1;
-        }
-        else if (visualDutyCycle < 31 && visualDutyCycle > 20) {
-            speedMultiplier = speedMultiplier + 2;
+            if(visualDutyCycle > 60 && visualDutyCycle <= 85) {
+                speedMultiplier = 1.3 - (speedMultiplier - 1);
+            } else if (visualDutyCycle > 85) {
+                speedMultiplier = 1.4 - (speedMultiplier - 1);
+            }  else {
+                speedMultiplier = 1 - (speedMultiplier - 1);
+            }
         } else {
-            speedMultiplier = speedMultiplier + 5;
+            if(visualDutyCycle < 30 && visualDutyCycle >= 20) {
+                speedMultiplier = (1.2 - speedMultiplier) + 1;
+            } else if (visualDutyCycle < 20) {
+                speedMultiplier = (1.4 - speedMultiplier) + 1;
+            }  else {
+                speedMultiplier = (1 - speedMultiplier) + 1;
+            }
         }
+        console.log(speedMultiplier);
         oscillatorsRef.current[side] = true;
         oscillator.start();
 
