@@ -87,7 +87,7 @@ export const SliderControlledDiv = () => {
                 speedMultiplier = (1 - speedMultiplier) + 1;
             }
         }
-        console.log(speedMultiplier);
+
         oscillatorsRef.current[side] = true;
         oscillator.start();
 
