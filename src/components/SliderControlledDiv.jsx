@@ -58,39 +58,53 @@ export const SliderControlledDiv = () => {
         };
     }, [leftFrequency, leftOscillatorType, rightFrequency, rightOscillatorType]);
 
+    const [visualDutyCycle, setVisualDutyCycle] = useState(50);
+
+    const calculateSpeedMultiplier = (visualDutyCycle) => {
+        return visualDutyCycle / 50;
+    };
+
     // Function to play an oscillator for a specified duty cycle
     const playOscillator = (oscillator, dutyCycle, side) => {
-        // Prevent multiple simultaneous plays for the same oscillator
         if (oscillatorsRef.current[side]) return;
 
-        // Start the oscillator and set a timeout to stop it based on duty cycle
+        let speedMultiplier = calculateSpeedMultiplier(visualDutyCycle);
+        if(visualDutyCycle > 50) {
+            speedMultiplier = speedMultiplier - 1;
+        } else if (visualDutyCycle < 50 && visualDutyCycle >= 21) {
+            speedMultiplier = speedMultiplier + 1;
+        }
+        else if (visualDutyCycle < 31 && visualDutyCycle > 20) {
+            speedMultiplier = speedMultiplier + 2;
+        } else {
+            speedMultiplier = speedMultiplier + 5;
+        }
         oscillatorsRef.current[side] = true;
         oscillator.start();
+
         setTimeout(() => {
             oscillator.stop();
             oscillatorsRef.current[side] = false;
-        }, (1000 / speed) * (dutyCycle / 100));
+        }, (1000 / (speed * speedMultiplier * 2)) * (dutyCycle / 100));
     };
 
     // Effect hook to handle the timing of visual and auditory changes
     useEffect(() => {
         const interval = setInterval(() => {
-            setTimeout(() => {
-                setVisualActive(prev => {
-                    if (!prev) {
-                        playOscillator(leftOscillator, leftDutyCycle, 'left');
-                        playOscillator(rightOscillator, rightDutyCycle, 'right');
-                    }
-                    return !prev;
-                });
-            }, 100);
+            setVisualActive(true);
+            playOscillator(leftOscillator, leftDutyCycle, 'left');
+            playOscillator(rightOscillator, rightDutyCycle, 'right');
 
+            setTimeout(() => {
+                setVisualActive(false);
+            }, (1000 / speed) * (visualDutyCycle / 100));
         }, 1000 / speed);
 
         return () => {
             clearInterval(interval);
         };
-    }, [speed, leftDutyCycle, rightDutyCycle, leftOscillator, rightOscillator]);
+    }, [speed, visualDutyCycle, leftDutyCycle, rightDutyCycle, leftOscillator, rightOscillator]);
+
 
     // Event handlers for various control inputs
     const handleSpeedChange = (e) => setSpeed(Number(e.target.value));
@@ -129,6 +143,9 @@ export const SliderControlledDiv = () => {
                     <h3>Visual Control</h3>
                     <label className={'control-sub-title'}>Speed (Hz): {speed}</label>
                     <input type='range' min='1' max='60' value={speed} onChange={handleSpeedChange}/>
+                    <label className={'control-sub-title'}>Duty Cycle (%): {visualDutyCycle}</label>
+                    <input type='range' min='10' max='90' value={visualDutyCycle}
+                           onChange={(e) => setVisualDutyCycle(Number(e.target.value))}/>
                 </div>
                 {/* Right Auditory Controls */}
                 <div>
