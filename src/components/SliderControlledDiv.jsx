@@ -1,179 +1,165 @@
-// Import necessary hooks and libraries
-import {useState, useEffect, useRef} from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import './slidercontrolleddiv.css';
-import {Panner} from "tone";
 
-// OscillatorTypeButton Component
-// Renders a button for selecting oscillator type.
-// Props:
-// - active: Boolean indicating if this oscillator type is active.
-// - type: String representing the oscillator type.
-// - setOscillatorType: Function to set the oscillator type.
-const OscillatorTypeButton = ({active, type, setOscillatorType}) => {
-    // Determine CSS class based on whether the button is active
+const OscillatorTypeButton = ({ active, type, setOscillatorType }) => {
     const buttonClass = `oscillator-type-button ${active ? 'active' : ''}`;
     return (
-        // Render the button with an onClick handler to set the oscillator type
         <button className={buttonClass} onClick={() => setOscillatorType(type)}>
             {type}
         </button>
     );
 };
 
-// SliderControlledDiv Component
-// This component renders a user interface for controlling oscillators and a visual element.
 export const SliderControlledDiv = () => {
-    // State hooks for various control parameters
     const [speed, setSpeed] = useState(1);
     const [leftDutyCycle, setLeftDutyCycle] = useState(25);
     const [rightDutyCycle, setRightDutyCycle] = useState(25);
-    const [leftOscillatorType, setLeftOscillatorType] = useState('sine');
-    const [rightOscillatorType, setRightOscillatorType] = useState('sine');
     const [leftFrequency, setLeftFrequency] = useState(500);
     const [rightFrequency, setRightFrequency] = useState(500);
-    const [leftOscillator, setLeftOscillator] = useState(null);
-    const [rightOscillator, setRightOscillator] = useState(null);
+    const [leftOscillatorType, setLeftOscillatorType] = useState('sine');
+    const [rightOscillatorType, setRightOscillatorType] = useState('sine');
     const [visualActive, setVisualActive] = useState(false);
 
-    // Ref for tracking the state of each oscillator
-    const oscillatorsRef = useRef({left: false, right: false});
+    const leftGainRef = useRef(null);
+    const rightGainRef = useRef(null);
+    const leftOscRef = useRef(null);
+    const rightOscRef = useRef(null);
 
-    // Panner instances for left and right audio channels
-    const leftPanner = new Panner(-1).toDestination();
-    const rightPanner = new Panner(1).toDestination();
-
-    // Effect hook for initializing and disposing of Tone.js oscillators
     useEffect(() => {
-        // Create new oscillators connected to the respective panner
-        const leftOsc = new Tone.Oscillator(leftFrequency, leftOscillatorType).connect(leftPanner);
-        const rightOsc = new Tone.Oscillator(rightFrequency, rightOscillatorType).connect(rightPanner);
-        setLeftOscillator(leftOsc);
-        setRightOscillator(rightOsc);
+        // Initialize panners
+        const leftPanner = new Tone.Panner(-1).toDestination();
+        const rightPanner = new Tone.Panner(1).toDestination();
 
-        // Cleanup function to dispose of oscillators when component unmounts
+        // Initialize gain nodes
+        leftGainRef.current = new Tone.Gain(0).connect(leftPanner);
+        rightGainRef.current = new Tone.Gain(0).connect(rightPanner);
+
+        // Initialize oscillators
+        leftOscRef.current = new Tone.Oscillator(leftFrequency, leftOscillatorType).connect(leftGainRef.current).start();
+        rightOscRef.current = new Tone.Oscillator(rightFrequency, rightOscillatorType).connect(rightGainRef.current).start();
+
         return () => {
-            leftOsc.dispose();
-            rightOsc.dispose();
+            leftOscRef.current.stop().dispose();
+            rightOscRef.current.stop().dispose();
         };
     }, [leftFrequency, leftOscillatorType, rightFrequency, rightOscillatorType]);
 
-    const [visualDutyCycle, setVisualDutyCycle] = useState(50);
-
-    const calculateSpeedMultiplier = (visualDutyCycle) => {
-        return visualDutyCycle / 50;
-    };
-
-    // Function to play an oscillator for a specified duty cycle
-    const playOscillator = (oscillator, dutyCycle, side) => {
-        if (oscillatorsRef.current[side]) return;
-
-        let speedMultiplier = calculateSpeedMultiplier(visualDutyCycle);
-        console.log(visualDutyCycle)
-        if(visualDutyCycle > 50) {
-            if(visualDutyCycle > 60 && visualDutyCycle <= 85) {
-                speedMultiplier = 1.3 - (speedMultiplier - 1);
-            } else if (visualDutyCycle > 85) {
-                speedMultiplier = 1.4 - (speedMultiplier - 1);
-            }  else {
-                speedMultiplier = 1 - (speedMultiplier - 1);
-            }
-        } else {
-            if(visualDutyCycle < 30 && visualDutyCycle >= 20) {
-                speedMultiplier = (1.2 - speedMultiplier) + 1;
-            } else if (visualDutyCycle < 20) {
-                speedMultiplier = (1.4 - speedMultiplier) + 1;
-            }  else {
-                speedMultiplier = (1 - speedMultiplier) + 1;
-            }
-        }
-
-        oscillatorsRef.current[side] = true;
-        oscillator.start();
-
-        setTimeout(() => {
-            oscillator.stop();
-            oscillatorsRef.current[side] = false;
-        }, (1000 / (speed * speedMultiplier * 2)) * (dutyCycle / 100));
-    };
-
-    // Effect hook to handle the timing of visual and auditory changes
     useEffect(() => {
         const interval = setInterval(() => {
-            setVisualActive(true);
-            playOscillator(leftOscillator, leftDutyCycle, 'left');
-            playOscillator(rightOscillator, rightDutyCycle, 'right');
-
-            setTimeout(() => {
-                setVisualActive(false);
-            }, (1000 / speed) * (visualDutyCycle / 100));
+            setVisualActive(prevState => !prevState);
         }, 1000 / speed);
 
-        return () => {
-            clearInterval(interval);
-        };
-    }, [speed, visualDutyCycle, leftDutyCycle, rightDutyCycle, leftOscillator, rightOscillator]);
+        return () => clearInterval(interval);
+    }, [speed]);
 
+    useEffect(() => {
+        const soundDurationLeft = 1000 / speed * (leftDutyCycle / 100);
+        const soundDurationRight = 1000 / speed * (rightDutyCycle / 100);
 
-    // Event handlers for various control inputs
+        if (visualActive) {
+            leftGainRef.current.gain.setValueAtTime(1, Tone.now());
+            rightGainRef.current.gain.setValueAtTime(1, Tone.now());
+
+            setTimeout(() => {
+                leftGainRef.current.gain.cancelScheduledValues(Tone.now());
+                leftGainRef.current.gain.setValueAtTime(0, Tone.now());
+            }, soundDurationLeft);
+
+            setTimeout(() => {
+                rightGainRef.current.gain.cancelScheduledValues(Tone.now());
+                rightGainRef.current.gain.setValueAtTime(0, Tone.now());
+            }, soundDurationRight);
+        } else {
+            leftGainRef.current.gain.setValueAtTime(0, Tone.now());
+            rightGainRef.current.gain.setValueAtTime(0, Tone.now());
+        }
+    }, [visualActive, speed, leftDutyCycle, rightDutyCycle]);
+
+    // Event handlers
     const handleSpeedChange = (e) => setSpeed(Number(e.target.value));
-    const handleLeftDutyCycleChange = (e) => setLeftDutyCycle(Number(e.target.value));
-    const handleRightDutyCycleChange = (e) => setRightDutyCycle(Number(e.target.value));
     const handleLeftFrequencyChange = (e) => setLeftFrequency(Number(e.target.value));
     const handleRightFrequencyChange = (e) => setRightFrequency(Number(e.target.value));
+    const handleLeftDutyCycleChange = (e) => setLeftDutyCycle(Number(e.target.value));
+    const handleRightDutyCycleChange = (e) => setRightDutyCycle(Number(e.target.value));
+    const handleLeftOscillatorTypeChange = (type) => setLeftOscillatorType(type);
+    const handleRightOscillatorTypeChange = (type) => setRightOscillatorType(type);
 
-    // Render the main component
     return (
         <div className='slider-controlled-div'>
             <button onClick={() => Tone.start()}>Start Audio</button>
-            <div className='flashing-div' style={{backgroundColor: !visualActive ? 'black' : 'white'}}></div>
-            <div className='controls' style={{display: 'flex', justifyContent: 'space-between'}}>
+            <div className='flashing-div' style={{ backgroundColor: visualActive ? 'white' : 'black' }}></div>
+            <div className='controls' style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                 {/* Left Auditory Controls */}
-                <div>
-                    <h3>Left Auditory Control</h3>
-                    <label className={'control-sub-title'}>Tone (Hz): {leftFrequency}</label>
-                    <input type='range' min='0' max='1000' value={leftFrequency} onChange={handleLeftFrequencyChange}/>
-                    <label className={'control-sub-title'}>Duty Cycle (%): {leftDutyCycle}</label>
-                    <input type='range' min='0' max='100' value={leftDutyCycle} onChange={handleLeftDutyCycleChange}/>
-                    {/* Oscillator Type Buttons for Left Channel */}
-                    <div style={{display: 'flex', margin: '20px 0'}}>
-                        <OscillatorTypeButton active={leftOscillatorType === 'sine'} type='sine'
-                                              setOscillatorType={setLeftOscillatorType}/>
-                        <OscillatorTypeButton active={leftOscillatorType === 'square'} type='square'
-                                              setOscillatorType={setLeftOscillatorType}/>
-                        <OscillatorTypeButton active={leftOscillatorType === 'sawtooth'} type='sawtooth'
-                                              setOscillatorType={setLeftOscillatorType}/>
-                        <OscillatorTypeButton active={leftOscillatorType === 'sine2'} type='sine2'
-                                              setOscillatorType={setRightOscillatorType}/>
+                <div className='audio-controls'>
+                    <div className='audio-controls'>
+                        <h3>Left Auditory Control</h3>
+                        <div className='controls-grid'>
+                            <div className='control-item'>
+                                <label htmlFor="leftFrequency">Tone (Hz): {leftFrequency}</label>
+                                <input id="leftFrequency" type='range' min='0' max='2000' value={leftFrequency}
+                                       onChange={handleLeftFrequencyChange}/>
+                            </div>
+                            <div className='control-item'>
+                                <label htmlFor="leftDutyCycle">Duty Cycle (%): {leftDutyCycle}</label>
+                                <input id="leftDutyCycle" type='range' min='1' max='100' value={leftDutyCycle}
+                                       onChange={handleLeftDutyCycleChange}/>
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{margin: "1em"}}>
+                        <div style={{display: 'flex', justifyContent: 'center'}}>
+                            <OscillatorTypeButton active={leftOscillatorType === 'sine'} type='sine'
+                                                  setOscillatorType={handleLeftOscillatorTypeChange}/>
+                            <OscillatorTypeButton active={leftOscillatorType === 'square'} type='square'
+                                                  setOscillatorType={handleLeftOscillatorTypeChange}/>
+                            <OscillatorTypeButton active={leftOscillatorType === 'sawtooth'} type='sawtooth'
+                                                  setOscillatorType={handleLeftOscillatorTypeChange}/>
+                            <OscillatorTypeButton active={leftOscillatorType === 'triangle'} type='triangle'
+                                                  setOscillatorType={handleLeftOscillatorTypeChange}/>
+                        </div>
                     </div>
                 </div>
+
                 {/* Visual Control */}
-                <div>
+                <div className='visual-controls'>
                     <h3>Visual Control</h3>
-                    <label className={'control-sub-title'}>Speed (Hz): {speed}</label>
-                    <input type='range' min='1' max='60' value={speed} onChange={handleSpeedChange}/>
-                    <label className={'control-sub-title'}>Duty Cycle (%): {visualDutyCycle}</label>
-                    <input type='range' min='10' max='90' value={visualDutyCycle}
-                           onChange={(e) => setVisualDutyCycle(Number(e.target.value))}/>
+                    <div>
+                        <label>Speed: {speed}</label>
+                        <input type='range' min='1' max='60' value={speed} onChange={handleSpeedChange} />
+                    </div>
                 </div>
+
                 {/* Right Auditory Controls */}
-                <div>
-                    <h3>Right Auditory Control</h3>
-                    <label className={'control-sub-title'}>Tone (Hz): {rightFrequency}</label>
-                    <input type='range' min='0' max='1000' value={rightFrequency}
-                           onChange={handleRightFrequencyChange}/>
-                    <label className={'control-sub-title'}>Duty Cycle (%): {rightDutyCycle}</label>
-                    <input type='range' min='0' max='100' value={rightDutyCycle} onChange={handleRightDutyCycleChange}/>
-                    {/* Oscillator Type Buttons for Right Channel */}
-                    <div style={{display: 'flex', margin: '20px 0'}}>
-                        <OscillatorTypeButton active={rightOscillatorType === 'sine'} type='sine'
-                                              setOscillatorType={setRightOscillatorType}/>
-                        <OscillatorTypeButton active={rightOscillatorType === 'square'} type='square'
-                                              setOscillatorType={setRightOscillatorType}/>
-                        <OscillatorTypeButton active={rightOscillatorType === 'sawtooth'} type='sawtooth'
-                                              setOscillatorType={setRightOscillatorType}/>
-                        <OscillatorTypeButton active={rightOscillatorType === 'sine2'} type='sine2'
-                                              setOscillatorType={setRightOscillatorType}/>
+                <div className='audio-controls'>
+
+                    <div className='audio-controls'>
+                        <h3>Right Auditory Control</h3>
+                        <div className='controls-grid'>
+                            <div className='control-item'>
+                                <label htmlFor="rightFrequency">Tone (Hz): {rightFrequency}</label>
+                                <input id="rightFrequency" type='range' min='0' max='2000' value={rightFrequency}
+                                       onChange={handleRightFrequencyChange}/>
+                            </div>
+                            <div className='control-item'>
+                                <label htmlFor="rightDutyCycle">Duty Cycle (%): {rightDutyCycle}</label>
+                                <input id="rightDutyCycle" type='range' min='1' max='100' value={rightDutyCycle}
+                                       onChange={handleRightDutyCycleChange}/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{margin: "1em"}}>
+                        <div style={{display: 'flex', justifyContent: 'center'}}>
+                            <OscillatorTypeButton active={rightOscillatorType === 'sine'} type='sine'
+                                                  setOscillatorType={handleRightOscillatorTypeChange}/>
+                            <OscillatorTypeButton active={rightOscillatorType === 'square'} type='square'
+                                                  setOscillatorType={handleRightOscillatorTypeChange}/>
+                            <OscillatorTypeButton active={rightOscillatorType === 'sawtooth'} type='sawtooth'
+                                                  setOscillatorType={handleRightOscillatorTypeChange}/>
+                            <OscillatorTypeButton active={rightOscillatorType === 'triangle'} type='triangle'
+                                                  setOscillatorType={handleRightOscillatorTypeChange}/>
+                        </div>
                     </div>
                 </div>
             </div>
